@@ -68,6 +68,10 @@ on:
         description: 'Skip a workflow run if the same workflow is already running. See: https://github.com/fkirc/skip-duplicate-actions?tab=readme-ov-file#concurrent_skipping'
         type: string
         default: 'same_content_newer'
+      runner:
+        description: 'JSON-encoded array of runner labels. Default is ["ubuntu-latest"]. For a self-hosted runner, pass e.g. ''["self-hosted","hetzner"]''.'
+        type: string
+        default: '["ubuntu-latest"]'
     secrets:
       moodle_org_token:
         required: false
@@ -75,7 +79,7 @@ on:
 jobs:
   pre_job:
    name: check if job needs to run
-   runs-on: ubuntu-latest
+   runs-on: ${{ fromJSON(inputs.runner) }}
    # Map a step output to a job output
    outputs:
      should_skip: ${{ steps.skip_check.outputs.should_skip }}
@@ -95,7 +99,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.moodle_branches }}-${{ inputs.extra_plugin_runners }}
       cancel-in-progress: true
-    runs-on: 'ubuntu-latest'
+    runs-on: ${{ fromJSON(inputs.runner) }}
     outputs:
       matrix: ${{ steps.parse-version.outputs.matrix }}
       component: ${{ steps.parse-version.outputs.component }}
@@ -173,7 +177,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.moodle-branch }}-${{ matrix.database }}-${{ matrix.php }}-${{ needs.prepare_matrix.outputs.component }}
       cancel-in-progress: true
-    runs-on: 'ubuntu-latest'
+    runs-on: ${{ fromJSON(inputs.runner) }}
     services:
       postgres:
         image: "postgres:${{ matrix.pgsql-ver }}"
@@ -244,7 +248,7 @@ jobs:
     # - MOODLE_XXX_STABLE
     # - main
     if: needs.pre_job.outputs.should_skip != 'true' && needs.prepare_matrix.outputs.release_required == 'true'
-    runs-on: 'ubuntu-latest'
+    runs-on: ${{ fromJSON(inputs.runner) }}
     outputs:
       has-secrets: ${{ steps.check-secrets.outputs.has-secrets }}
     steps:
