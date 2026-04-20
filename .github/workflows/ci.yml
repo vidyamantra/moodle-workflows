@@ -226,6 +226,12 @@ jobs:
             libxml2-dev libzip-dev libpng-dev libonig-dev \
             locales \
             default-mysql-client postgresql-client
+          # We chown the workspace back to the host runner UID at the end
+          # of each job. That leaves files owned by a different user than
+          # root (us, inside the container), which trips git's "dubious
+          # ownership" protection on the NEXT job. Trust any directory for
+          # this container's git invocations.
+          git config --global --add safe.directory '*'
         shell: bash
       - name: Set custom environment variables
         run: |
