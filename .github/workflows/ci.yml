@@ -258,6 +258,18 @@ jobs:
           disable_phpcpd:    ${{ inputs.disable_phpcpd }}
           disable_ci_validate: ${{ inputs.disable_ci_validate }}
           highest_moodle_branch: ${{ needs.prepare_matrix.outputs.highest_moodle_branch }}
+      - name: Hand workspace back to the runner user (post-step)
+        # Inside the container we run as root, which leaves root-owned files
+        # in the mounted workspace. On a persistent self-hosted runner the
+        # next job fails with EACCES when actions/checkout tries to clean up.
+        # Chown the workspace back to whatever UID/GID owns its parent
+        # (the runner user on the host) before this job exits.
+        if: always()
+        run: |
+          HOST_UID=$(stat -c %u "$GITHUB_WORKSPACE/..")
+          HOST_GID=$(stat -c %g "$GITHUB_WORKSPACE/..")
+          chown -R "$HOST_UID:$HOST_GID" "$GITHUB_WORKSPACE" || true
+        shell: bash
 
   release:
     name: Release to the Moodle plugin directory
