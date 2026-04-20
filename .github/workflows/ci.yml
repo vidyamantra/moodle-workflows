@@ -178,6 +178,13 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.moodle-branch }}-${{ matrix.database }}-${{ matrix.php }}-${{ needs.prepare_matrix.outputs.component }}
       cancel-in-progress: true
     runs-on: ${{ fromJSON(inputs.runner) }}
+    # Run all steps inside a container so the job joins the per-job Docker
+    # network alongside the service containers. This avoids fixed-host-port
+    # conflicts when multiple matrix jobs run on the same self-hosted host.
+    # Services are reachable by network alias (postgres:5432, mariadb:3306)
+    # from inside this container.
+    container:
+      image: ubuntu:24.04
     services:
       postgres:
         image: "postgres:${{ matrix.pgsql-ver }}"
@@ -189,8 +196,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 3
-        ports:
-          - 5432:5432
       mariadb:
         image: "mariadb:${{ matrix.mariadb-ver }}"
         env:
@@ -198,14 +203,30 @@ jobs:
           MYSQL_ALLOW_EMPTY_PASSWORD: "true"
           MYSQL_CHARACTER_SET_SERVER: "utf8mb4"
           MYSQL_COLLATION_SERVER: "utf8mb4_unicode_ci"
-        ports:
-          - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 3
     steps:
+      - name: Install container prerequisites
+        # ubuntu:24.04 is minimal; install the base tools that actions and
+        # moodle-plugin-ci expect. shivammathur/setup-php requires:
+        # bash coreutils curl file git grep jq sudo tar unzip wget.
+        # Plus DB clients, build tools for PHP extensions, and locales
+        # (Moodle PHPUnit expects en_AU.UTF-8).
+        run: |
+          set -eux
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            bash coreutils curl file git grep jq sudo tar unzip wget \
+            ca-certificates gnupg lsb-release python3 \
+            make gcc \
+            libxml2-dev libzip-dev libpng-dev libonig-dev \
+            locales \
+            default-mysql-client postgresql-client
+        shell: bash
       - name: Set custom environment variables
         run: |
           USER_IGNORE_PATHS="${{ inputs.ignore_paths }}"
