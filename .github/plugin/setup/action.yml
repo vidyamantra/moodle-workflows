@@ -64,6 +64,12 @@ runs:
         # Initialise moodle-plugin-ci (install via composer)
         echo "::group::Initialise moodle-plugin-ci"
 
+        # Persistent self-hosted runners can leave a stale m-ci/ from a
+        # prior run; composer create-project refuses to run into a
+        # non-empty directory. Same for moodle/ (composite action's own
+        # clone target) and moodletemp/ used below.
+        rm -rf m-ci moodle moodletemp
+
         composer create-project -n --no-dev --prefer-dist moodlehq/moodle-plugin-ci m-ci ^4
         # Add dirs to $PATH
         echo $(cd m-ci/bin; pwd) >> $GITHUB_PATH
@@ -117,7 +123,12 @@ runs:
         # This is a workaround for https://github.com/moodlehq/moodle-plugin-ci/issues/306 - we disable the git repository validation to allow folder cloning.
         sed -i '/public function gitUrl($url)/{n; s/{/& return $url;/}' $GITHUB_WORKSPACE/m-ci/src/Validate.php
 
-        moodle-plugin-ci install -vvv --plugin ./plugin --db-host=127.0.0.1 --repo $GITHUB_WORKSPACE/moodletemp
+        # DB_HOST defaults to 127.0.0.1 for classic GitHub-hosted runner
+        # setups where service containers are reached via host port
+        # mappings. Containerised jobs (self-hosted runners in this fork)
+        # set DB_HOST to the service alias name (e.g. pgsql / postgres /
+        # mariadb) via env at the job level.
+        moodle-plugin-ci install -vvv --plugin ./plugin --db-host=${DB_HOST:-127.0.0.1} --repo $GITHUB_WORKSPACE/moodletemp
 
         echo "::endgroup::"
       shell: bash

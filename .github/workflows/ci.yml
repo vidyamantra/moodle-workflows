@@ -65,6 +65,10 @@ on:
         description: 'Skip a workflow run if the same workflow is already running. See: https://github.com/fkirc/skip-duplicate-actions?tab=readme-ov-file#concurrent_skipping'
         type: string
         default: 'same_content_newer'
+      runner:
+        description: 'JSON-encoded array of runner labels. Default is ["ubuntu-latest"]. For a self-hosted runner, pass e.g. ''["self-hosted","hetzner"]''.'
+        type: string
+        default: '["ubuntu-latest"]'
     secrets:
       moodle_org_token:
         required: false
@@ -72,7 +76,7 @@ on:
 jobs:
   pre_job:
    name: check if job needs to run
-   runs-on: ubuntu-latest
+   runs-on: ${{ fromJSON(inputs.runner) }}
    # Map a step output to a job output
    outputs:
      should_skip: ${{ steps.skip_check.outputs.should_skip }}
@@ -92,7 +96,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.moodle_branches }}-${{ inputs.extra_plugin_runners }}
       cancel-in-progress: true
-    runs-on: 'ubuntu-latest'
+    runs-on: ${{ fromJSON(inputs.runner) }}
     outputs:
       matrix: ${{ steps.parse-version.outputs.matrix }}
       behat_matrix: ${{ steps.parse-version.outputs.behat_matrix }}
@@ -129,7 +133,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: ci
-          repository: catalyst/catalyst-moodle-workflows
+          repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
           token: ${{ github.token }}
       - name: Check out plugin code
@@ -169,14 +173,14 @@ jobs:
 
   codechecker:
     if: needs.pre_job.outputs.should_skip != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runner) }}
     needs: prepare_matrix
     steps:
       - name: Check out CI code
         uses: actions/checkout@v3
         with:
           path: ci
-          repository: catalyst/catalyst-moodle-workflows
+          repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
           token: ${{ github.token }}
       - name: Run plugin setup (canonical)
@@ -209,14 +213,14 @@ jobs:
         shell: bash
   phplint:
     if: needs.pre_job.outputs.should_skip != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runner) }}
     needs: prepare_matrix
     steps:
       - name: Check out CI code
         uses: actions/checkout@v3
         with:
           path: ci
-          repository: catalyst/catalyst-moodle-workflows
+          repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
           token: ${{ github.token }}
       - name: Run plugin setup (canonical)
@@ -231,11 +235,14 @@ jobs:
         shell: bash
   validate:
     if: needs.pre_job.outputs.should_skip != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    container: ubuntu:24.04
     needs: prepare_matrix
+    env:
+      DB_HOST: pgsql
     services:
       pgsql:
-        image: "postgres:${{ needs.prepare_matrix.outputs.latest_pgsql_ver }}"  
+        image: "postgres:${{ needs.prepare_matrix.outputs.latest_pgsql_ver }}"
         env:
           POSTGRES_USER: 'postgres'
           POSTGRES_HOST_AUTH_METHOD: 'trust'
@@ -244,14 +251,34 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 3
-        ports:
-          - 5432:5432
     steps:
+      - name: Install container prerequisites
+        # ubuntu:24.04 is minimal; install the base tools that actions and
+        # moodle-plugin-ci expect. shivammathur/setup-php requires:
+        # bash coreutils curl file git grep jq sudo tar unzip wget.
+        # Plus DB clients, build tools for PHP extensions, and locales
+        # (Moodle PHPUnit expects en_AU.UTF-8). html5validator is required
+        # by Moodle's mustache_lint_util.php for mustache step.
+        run: |
+          set -eux
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            bash coreutils curl file git grep jq sudo tar unzip wget \
+            ca-certificates gnupg lsb-release python3 python3-pip \
+            default-jre-headless \
+            make gcc \
+            libxml2-dev libzip-dev libpng-dev libonig-dev \
+            locales \
+            default-mysql-client postgresql-client
+          pip3 install --break-system-packages html5validator
+          git config --global --add safe.directory '*'
+        shell: bash
       - name: Check out CI code
         uses: actions/checkout@v3
         with:
           path: ci
-          repository: catalyst/catalyst-moodle-workflows
+          repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
           token: ${{ github.token }}
       - name: Run plugin setup (canonical)
@@ -267,17 +294,26 @@ jobs:
         if: ${{ inputs.disable_ci_validate != true }}
         run: moodle-plugin-ci validate ./plugin
         shell: bash
+      - name: Chown workspace back to host runner UID
+        # We run inside a container as root. GitHub Actions mounts the host
+        # runner's _work directory; files created in this job are root-owned,
+        # which trips permission errors on the NEXT job running on the same
+        # runner outside a container. Chown back to the runner user.
+        if: always()
+        run: |
+          chown -R "${HOST_UID:-1001}:${HOST_GID:-1001}" "$GITHUB_WORKSPACE" 2>/dev/null || true
+        shell: bash
   savepoints:
     name: Savepoints
     if: needs.pre_job.outputs.should_skip != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runner) }}
     needs: prepare_matrix
     steps:
       - name: Check out CI code
         uses: actions/checkout@v3
         with:
           path: ci
-          repository: catalyst/catalyst-moodle-workflows
+          repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
           token: ${{ github.token }}
       - name: Run plugin setup (canonical)
@@ -293,11 +329,14 @@ jobs:
         shell: bash
   mustache:
     if: needs.pre_job.outputs.should_skip != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    container: ubuntu:24.04
     needs: prepare_matrix
+    env:
+      DB_HOST: pgsql
     services:
       pgsql:
-        image: "postgres:${{ needs.prepare_matrix.outputs.latest_pgsql_ver }}"  
+        image: "postgres:${{ needs.prepare_matrix.outputs.latest_pgsql_ver }}"
         env:
           POSTGRES_USER: 'postgres'
           POSTGRES_HOST_AUTH_METHOD: 'trust'
@@ -306,14 +345,34 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 3
-        ports:
-          - 5432:5432
     steps:
+      - name: Install container prerequisites
+        # ubuntu:24.04 is minimal; install the base tools that actions and
+        # moodle-plugin-ci expect. shivammathur/setup-php requires:
+        # bash coreutils curl file git grep jq sudo tar unzip wget.
+        # Plus DB clients, build tools for PHP extensions, and locales
+        # (Moodle PHPUnit expects en_AU.UTF-8). html5validator is required
+        # by Moodle's mustache_lint_util.php for mustache step.
+        run: |
+          set -eux
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            bash coreutils curl file git grep jq sudo tar unzip wget \
+            ca-certificates gnupg lsb-release python3 python3-pip \
+            default-jre-headless \
+            make gcc \
+            libxml2-dev libzip-dev libpng-dev libonig-dev \
+            locales \
+            default-mysql-client postgresql-client
+          pip3 install --break-system-packages html5validator
+          git config --global --add safe.directory '*'
+        shell: bash
       - name: Check out CI code
         uses: actions/checkout@v3
         with:
           path: ci
-          repository: catalyst/catalyst-moodle-workflows
+          repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
           token: ${{ github.token }}
       - name: Run plugin setup (canonical)
@@ -329,13 +388,25 @@ jobs:
         if: ${{ inputs.disable_mustache != true }}
         run: moodle-plugin-ci mustache
         shell: bash
+      - name: Chown workspace back to host runner UID
+        # We run inside a container as root. GitHub Actions mounts the host
+        # runner's _work directory; files created in this job are root-owned,
+        # which trips permission errors on the NEXT job running on the same
+        # runner outside a container. Chown back to the runner user.
+        if: always()
+        run: |
+          chown -R "${HOST_UID:-1001}:${HOST_GID:-1001}" "$GITHUB_WORKSPACE" 2>/dev/null || true
+        shell: bash
   grunt:
     if: needs.pre_job.outputs.should_skip != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    container: ubuntu:24.04
     needs: prepare_matrix
+    env:
+      DB_HOST: pgsql
     services:
       pgsql:
-        image: "postgres:${{ needs.prepare_matrix.outputs.latest_pgsql_ver }}"  
+        image: "postgres:${{ needs.prepare_matrix.outputs.latest_pgsql_ver }}"
         env:
           POSTGRES_USER: 'postgres'
           POSTGRES_HOST_AUTH_METHOD: 'trust'
@@ -344,14 +415,34 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 3
-        ports:
-          - 5432:5432
     steps:
+      - name: Install container prerequisites
+        # ubuntu:24.04 is minimal; install the base tools that actions and
+        # moodle-plugin-ci expect. shivammathur/setup-php requires:
+        # bash coreutils curl file git grep jq sudo tar unzip wget.
+        # Plus DB clients, build tools for PHP extensions, and locales
+        # (Moodle PHPUnit expects en_AU.UTF-8). html5validator is required
+        # by Moodle's mustache_lint_util.php for mustache step.
+        run: |
+          set -eux
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            bash coreutils curl file git grep jq sudo tar unzip wget \
+            ca-certificates gnupg lsb-release python3 python3-pip \
+            default-jre-headless \
+            make gcc \
+            libxml2-dev libzip-dev libpng-dev libonig-dev \
+            locales \
+            default-mysql-client postgresql-client
+          pip3 install --break-system-packages html5validator
+          git config --global --add safe.directory '*'
+        shell: bash
       - name: Check out CI code
         uses: actions/checkout@v3
         with:
           path: ci
-          repository: catalyst/catalyst-moodle-workflows
+          repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
           token: ${{ github.token }}
       - name: Run plugin setup (canonical)
@@ -368,16 +459,25 @@ jobs:
         run: |
           moodle-plugin-ci grunt
         shell: bash
+      - name: Chown workspace back to host runner UID
+        # We run inside a container as root. GitHub Actions mounts the host
+        # runner's _work directory; files created in this job are root-owned,
+        # which trips permission errors on the NEXT job running on the same
+        # runner outside a container. Chown back to the runner user.
+        if: always()
+        run: |
+          chown -R "${HOST_UID:-1001}:${HOST_GID:-1001}" "$GITHUB_WORKSPACE" 2>/dev/null || true
+        shell: bash
   phpmd:
     if: needs.pre_job.outputs.should_skip != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runner) }}
     needs: prepare_matrix
     steps:
       - name: Check out CI code
         uses: actions/checkout@v3
         with:
           path: ci
-          repository: catalyst/catalyst-moodle-workflows
+          repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
           token: ${{ github.token }}
       - name: Run plugin setup (canonical)
@@ -394,14 +494,14 @@ jobs:
         shell: bash
   phpdoc:
     if: needs.pre_job.outputs.should_skip != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runner) }}
     needs: prepare_matrix
     steps:
       - name: Check out CI code
         uses: actions/checkout@v3
         with:
           path: ci
-          repository: catalyst/catalyst-moodle-workflows
+          repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
           token: ${{ github.token }}
       - name: Run plugin setup (canonical)
@@ -440,10 +540,12 @@ jobs:
       matrix: ${{ fromJson(needs.prepare_matrix.outputs.phpunit_matrix) }}
     env:
       IGNORE_PATHS: tests/fixtures
+      DB_HOST: ${{ matrix.database == 'pgsql' && 'postgres' || 'mariadb' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.moodle-branch }}-${{ matrix.database }}-${{ matrix.php }}-${{ needs.prepare_matrix.outputs.component }}-phpunit
       cancel-in-progress: true
-    runs-on: 'ubuntu-latest'
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    container: ubuntu:24.04
     services:
       postgres:
         image: "postgres:${{ matrix.pgsql-ver }}"
@@ -455,8 +557,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 3
-        ports:
-          - 5432:5432
       mariadb:
         image: "mariadb:${{ matrix.mariadb-ver }}"
         env:
@@ -464,19 +564,39 @@ jobs:
           MYSQL_ALLOW_EMPTY_PASSWORD: "true"
           MYSQL_CHARACTER_SET_SERVER: "utf8mb4"
           MYSQL_COLLATION_SERVER: "utf8mb4_unicode_ci"
-        ports:
-          - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 3
     steps:
+      - name: Install container prerequisites
+        # ubuntu:24.04 is minimal; install the base tools that actions and
+        # moodle-plugin-ci expect. shivammathur/setup-php requires:
+        # bash coreutils curl file git grep jq sudo tar unzip wget.
+        # Plus DB clients, build tools for PHP extensions, and locales
+        # (Moodle PHPUnit expects en_AU.UTF-8). html5validator is required
+        # by Moodle's mustache_lint_util.php for mustache step.
+        run: |
+          set -eux
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            bash coreutils curl file git grep jq sudo tar unzip wget \
+            ca-certificates gnupg lsb-release python3 python3-pip \
+            default-jre-headless \
+            make gcc \
+            libxml2-dev libzip-dev libpng-dev libonig-dev \
+            locales \
+            default-mysql-client postgresql-client
+          pip3 install --break-system-packages html5validator
+          git config --global --add safe.directory '*'
+        shell: bash
       - name: Check out CI code
         uses: actions/checkout@v3
         with:
           path: ci
-          repository: catalyst/catalyst-moodle-workflows
+          repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
           token: ${{ github.token }}
       - name: Run plugin setup
@@ -495,6 +615,15 @@ jobs:
           vendor/bin/phpunit --fail-on-risky --disallow-test-output --filter tool_dataprivacy_metadata_registry_testcase
           vendor/bin/phpunit --fail-on-risky --disallow-test-output --testsuite core_privacy_testsuite --filter provider_testcase
         shell: bash
+      - name: Chown workspace back to host runner UID
+        # We run inside a container as root. GitHub Actions mounts the host
+        # runner's _work directory; files created in this job are root-owned,
+        # which trips permission errors on the NEXT job running on the same
+        # runner outside a container. Chown back to the runner user.
+        if: always()
+        run: |
+          chown -R "${HOST_UID:-1001}:${HOST_GID:-1001}" "$GITHUB_WORKSPACE" 2>/dev/null || true
+        shell: bash
   behat:
     name: ${{ matrix.moodle-branch-short }} - behat - php${{ matrix.php }} - ${{ matrix.database }}
     needs: prepare_matrix
@@ -504,10 +633,12 @@ jobs:
       matrix: ${{ fromJson(needs.prepare_matrix.outputs.behat_matrix) }}
     env:
       IGNORE_PATHS: tests/fixtures
+      DB_HOST: ${{ matrix.database == 'pgsql' && 'postgres' || 'mariadb' }}
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.moodle-branch }}-${{ matrix.database }}-${{ matrix.php }}-${{ needs.prepare_matrix.outputs.component }}-behat
       cancel-in-progress: true
-    runs-on: 'ubuntu-latest'
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    container: ubuntu:24.04
     services:
       postgres:
         image: "postgres:${{ matrix.pgsql-ver }}"
@@ -519,8 +650,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 3
-        ports:
-          - 5432:5432
       mariadb:
         image: "mariadb:${{ matrix.mariadb-ver }}"
         env:
@@ -528,19 +657,39 @@ jobs:
           MYSQL_ALLOW_EMPTY_PASSWORD: "true"
           MYSQL_CHARACTER_SET_SERVER: "utf8mb4"
           MYSQL_COLLATION_SERVER: "utf8mb4_unicode_ci"
-        ports:
-          - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 3
     steps:
+      - name: Install container prerequisites
+        # ubuntu:24.04 is minimal; install the base tools that actions and
+        # moodle-plugin-ci expect. shivammathur/setup-php requires:
+        # bash coreutils curl file git grep jq sudo tar unzip wget.
+        # Plus DB clients, build tools for PHP extensions, and locales
+        # (Moodle PHPUnit expects en_AU.UTF-8). html5validator is required
+        # by Moodle's mustache_lint_util.php for mustache step.
+        run: |
+          set -eux
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            bash coreutils curl file git grep jq sudo tar unzip wget \
+            ca-certificates gnupg lsb-release python3 python3-pip \
+            default-jre-headless \
+            make gcc \
+            libxml2-dev libzip-dev libpng-dev libonig-dev \
+            locales \
+            default-mysql-client postgresql-client
+          pip3 install --break-system-packages html5validator
+          git config --global --add safe.directory '*'
+        shell: bash
       - name: Check out CI code
         uses: actions/checkout@v3
         with:
           path: ci
-          repository: catalyst/catalyst-moodle-workflows
+          repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
           token: ${{ github.token }}
       - name: Run plugin setup
@@ -554,6 +703,15 @@ jobs:
           database: ${{ matrix.database }}
       - name: Run behat
         run: moodle-plugin-ci behat --profile chrome
+        shell: bash
+      - name: Chown workspace back to host runner UID
+        # We run inside a container as root. GitHub Actions mounts the host
+        # runner's _work directory; files created in this job are root-owned,
+        # which trips permission errors on the NEXT job running on the same
+        # runner outside a container. Chown back to the runner user.
+        if: always()
+        run: |
+          chown -R "${HOST_UID:-1001}:${HOST_GID:-1001}" "$GITHUB_WORKSPACE" 2>/dev/null || true
         shell: bash
   release:
     name: Release to the Moodle plugin directory
@@ -588,7 +746,7 @@ jobs:
       !contains(needs.*.result, 'cancelled') &&
       needs.pre_job.outputs.should_skip != 'true' &&
       needs.prepare_matrix.outputs.release_required == 'true'
-    runs-on: 'ubuntu-latest'
+    runs-on: ${{ fromJSON(inputs.runner) }}
     outputs:
       has-secrets: ${{ steps.check-secrets.outputs.has-secrets }}
     steps:
@@ -603,7 +761,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: ci
-          repository: catalyst/catalyst-moodle-workflows
+          repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
           token: ${{ github.token }}
 
