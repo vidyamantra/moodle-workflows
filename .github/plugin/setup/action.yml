@@ -92,11 +92,19 @@ runs:
       shell: bash
 
     - name: Clone Moodle
-      # Clone to a temporary directory
+      # Clone to a temporary directory. --reference-if-able uses the host
+      # bare mirror at /mnt/ci-cache/moodle.git (mounted by the caller
+      # workflow) when present, turning the ~3 GB clone into a pack-ref
+      # copy. On runners without the mount it silently falls back to a
+      # full clone.
       run: |
         echo "::group::Moodle clone output"
 
-        git clone https://github.com/moodle/moodle.git --branch $MOODLE_BRANCH $GITHUB_WORKSPACE/moodletemp
+        REF_ARG=""
+        if [ -d /mnt/ci-cache/moodle.git ]; then
+          REF_ARG="--reference-if-able /mnt/ci-cache/moodle.git"
+        fi
+        git clone $REF_ARG https://github.com/moodle/moodle.git --branch $MOODLE_BRANCH $GITHUB_WORKSPACE/moodletemp
 
         echo "::endgroup::"
       shell: bash

@@ -174,7 +174,12 @@ jobs:
   codechecker:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
-    container: ubuntu:24.04
+    container:
+      image: ubuntu:24.04
+      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
+      # can use git --reference-if-able against a shared bare mirror of
+      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
+      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
     needs: prepare_matrix
     steps:
       - name: Install container prerequisites
@@ -244,7 +249,12 @@ jobs:
   phplint:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
-    container: ubuntu:24.04
+    container:
+      image: ubuntu:24.04
+      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
+      # can use git --reference-if-able against a shared bare mirror of
+      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
+      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
     needs: prepare_matrix
     steps:
       - name: Install container prerequisites
@@ -292,7 +302,12 @@ jobs:
   validate:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
-    container: ubuntu:24.04
+    container:
+      image: ubuntu:24.04
+      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
+      # can use git --reference-if-able against a shared bare mirror of
+      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
+      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
     needs: prepare_matrix
     env:
       DB_HOST: pgsql
@@ -368,7 +383,12 @@ jobs:
     name: Savepoints
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
-    container: ubuntu:24.04
+    container:
+      image: ubuntu:24.04
+      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
+      # can use git --reference-if-able against a shared bare mirror of
+      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
+      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
     needs: prepare_matrix
     steps:
       - name: Install container prerequisites
@@ -415,7 +435,12 @@ jobs:
   mustache:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
-    container: ubuntu:24.04
+    container:
+      image: ubuntu:24.04
+      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
+      # can use git --reference-if-able against a shared bare mirror of
+      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
+      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
     needs: prepare_matrix
     env:
       DB_HOST: pgsql
@@ -490,7 +515,12 @@ jobs:
   grunt:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
-    container: ubuntu:24.04
+    container:
+      image: ubuntu:24.04
+      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
+      # can use git --reference-if-able against a shared bare mirror of
+      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
+      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
     needs: prepare_matrix
     env:
       DB_HOST: pgsql
@@ -566,7 +596,12 @@ jobs:
   phpmd:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
-    container: ubuntu:24.04
+    container:
+      image: ubuntu:24.04
+      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
+      # can use git --reference-if-able against a shared bare mirror of
+      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
+      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
     needs: prepare_matrix
     steps:
       - name: Install container prerequisites
@@ -614,7 +649,12 @@ jobs:
   phpdoc:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
-    container: ubuntu:24.04
+    container:
+      image: ubuntu:24.04
+      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
+      # can use git --reference-if-able against a shared bare mirror of
+      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
+      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
     needs: prepare_matrix
     steps:
       - name: Install container prerequisites
@@ -688,7 +728,12 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.moodle-branch }}-${{ matrix.database }}-${{ matrix.php }}-${{ needs.prepare_matrix.outputs.component }}-phpunit
       cancel-in-progress: true
     runs-on: ${{ fromJSON(inputs.runner) }}
-    container: ubuntu:24.04
+    container:
+      image: ubuntu:24.04
+      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
+      # can use git --reference-if-able against a shared bare mirror of
+      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
+      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
     services:
       postgres:
         image: "postgres:${{ matrix.pgsql-ver }}"
@@ -786,7 +831,12 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.moodle-branch }}-${{ matrix.database }}-${{ matrix.php }}-${{ needs.prepare_matrix.outputs.component }}-behat
       cancel-in-progress: true
     runs-on: ${{ fromJSON(inputs.runner) }}
-    container: ubuntu:24.04
+    container:
+      image: ubuntu:24.04
+      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
+      # can use git --reference-if-able against a shared bare mirror of
+      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
+      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
     services:
       postgres:
         image: "postgres:${{ matrix.pgsql-ver }}"
