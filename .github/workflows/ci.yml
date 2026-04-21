@@ -128,6 +128,18 @@ jobs:
           ) }}
 
           echo "::set-output name=publishable::$publishable"
+      - name: Clean root-owned workspace leftovers (host job)
+        # prepare_matrix runs as the runner-N user on the self-hosted host.
+        # Containerised jobs from earlier runs may have left root-owned
+        # files in $GITHUB_WORKSPACE that actions/checkout cannot remove.
+        # Use docker (runner-N is in the docker group) to chown/chmod as
+        # root. Group 1001 is the shared 'runners' group on this host.
+        if: runner.name != ''
+        run: |
+          docker run --rm --network none \
+            -v "$GITHUB_WORKSPACE:/work" alpine:3 \
+            sh -c "chown -R :1001 /work && chmod -R g+rwX /work" 2>/dev/null || true
+        shell: bash
       - uses: actions/checkout@v3
       - name: Check out CI code
         uses: actions/checkout@v3
