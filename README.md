@@ -1,5 +1,11 @@
 # Reusable Workflows
 
+> **Vidyamantra fork.** This repository is a fork of
+> [`catalyst/catalyst-moodle-workflows`](https://github.com/catalyst/catalyst-moodle-workflows)
+> that adds support for Vidyamantra's self-hosted GitHub Actions runner pool.
+> See [Moodiy self-hosted runner customisations](#moodiy-self-hosted-runner-customisations)
+> for the list of changes on top of upstream and how to consume them.
+
 Thanks to the new GitHub Actions feature called "Reusable Workflows" we can now reference an existing workflow with a single line of configuration rather than copying and pasting from one workflow to another.
 
 This massively reduces the amount of boilerplate setup in each plugin to the bare minimum and also means that we can maintain and revise our definition of best practice in one place and have all the Moodle plugins inherit improvements in lock step. Mostly these shared actions in turn wrap the Moodle plugin CI scripts:
@@ -188,3 +194,115 @@ and specify the same branch as a `with` parameter:
 with:
   internal_workflow_branch: 'my-custom-branch'
 ```
+
+## Moodiy self-hosted runner customisations
+
+This fork extends the upstream Catalyst reusable workflows with a self-hosted
+runner backend. Hosted runners (GitHub's cloud runners) remain supported and
+unchanged; to opt in to the self-hosted path, set `runner: ubuntu-self-hosted`
+on the caller workflow:
+
+```yml
+jobs:
+  test:
+    uses: vidyamantra/moodle-workflows/.github/workflows/ci.yml@main
+    with:
+      runner: ubuntu-self-hosted
+```
+
+### Runtime architecture
+
+Every matrix job runs in a Docker container pulled from a local registry on
+the runner host (`localhost:5000/moodle-ci-base:latest`). This gives each job
+an isolated `/usr/bin/php` so 30+ concurrent matrix jobs no longer race on
+`update-alternatives`, and eliminates a large class of
+`shivammathur/setup-php` flakes under load.
+
+```
+GitHub Actions job
+  └─ runner (one of 32) on runners.vidyamantra.com
+      └─ container: localhost:5000/moodle-ci-base:latest
+           ├─ PHP 8.1, 8.2, 8.3, 8.4 pre-installed (Ondrej PPA)
+           ├─ composer, default-jre-headless, html5validator
+           └─ workspace/composer/npm caches bind-mounted from host
+```
+
+### Host dependencies injected at runtime
+
+The caller workflow adds these Docker container options so every CI job can
+take advantage of shared host services without paying hosted-runner-style
+setup costs on every invocation:
+
+| Feature | Mechanism | Why |
+|--|--|--|
+| `apt-cacher-ng` | `--add-host=acng:host-gateway` plus `/etc/apt/apt.conf.d/01proxy` written by the composite setup action | Avoids `packages.sury.org` Cloudflare 418 rate limits; caches all apt fetches once per host |
+| Bare Moodle mirror | `/mnt/ci-cache/moodle.git` bind-mounted read-only; `git clone --reference-if-able` | Turns the ~3 GB Moodle clone into a pack-ref copy (<1 GB and ~10× faster) |
+| composer/npm caches | host bind-mounts under `/mnt/ci-cache/composer` and `/mnt/ci-cache/npm` | Warm caches survive container restarts and post-job cleanup |
+| tmpfs service DBs | `postgres`/`mariadb` service containers declare `--tmpfs /var/lib/postgresql/data` etc. | Removes all DB-write IO from the NVMe RAID |
+| Workspace chown | shared `runners` group (GID 1001) + post-job hook | Container jobs write as root; the pre/post hooks wipe root-owned leftovers so `actions/checkout` on the next run does not `EACCES` |
+
+### PHP setup
+
+`shivammathur/setup-php` fails against a container image that already has
+PHP installed (`semver: parameter null or not set`). The composite setup
+action at `.github/plugin/setup/action.yml` therefore selects the requested
+PHP version with `update-alternatives` and only shells out to `apt-get` for
+extensions that are not baked into the base image:
+
+```yml
+- name: Setup PHP ${{ inputs.php }}
+  shell: bash
+  run: |
+    set -euo pipefail
+    PHP_VER="${{ inputs.php }}"
+    for bin in php phar phar.phar php-config phpize; do
+      update-alternatives --set "$bin" "/usr/bin/${bin}${PHP_VER}" 2>/dev/null || \
+        ln -sf "/usr/bin/${bin}${PHP_VER}" "/usr/bin/${bin}"
+    done
+    ...
+```
+
+Hosted runners (those without the container image) never hit this path
+because the `runner` input stays at `ubuntu-latest`.
+
+### Base image
+
+`moodle-ci-base.Dockerfile` at the top of this repo is the source of truth
+for the runner container image. It pulls PHP 8.1–8.4 plus all extensions
+Moodle needs (`pgsql`, `mysqli`, `zip`, `gd`, `xmlrpc`, `soap`, `xml`,
+`mbstring`, `intl`, `curl`, `opcache`, `readline`) from Ondrej's
+**Launchpad PPA** (`http://ppa.launchpad.net/ondrej/php/ubuntu`). We moved
+off `packages.sury.org` because Cloudflare rate-limits concurrent apt
+requests from a single IP with HTTP 418.
+
+To rebuild the image on the runner host:
+
+```sh
+ssh root@runners.vidyamantra.com
+cd /opt/ci
+docker build --network host \
+  -f moodle-ci-base.Dockerfile \
+  -t localhost:5000/moodle-ci-base:latest .
+docker push localhost:5000/moodle-ci-base:latest
+```
+
+The `ARG APT_PROXY=http://172.17.0.1:3142` at the top of the Dockerfile
+routes the build itself through apt-cacher-ng so subsequent rebuilds avoid
+re-downloading every package.
+
+### What changed vs upstream Catalyst
+
+The diff against `catalyst/catalyst-moodle-workflows:main` is concentrated
+in three files:
+
+- `.github/workflows/ci.yml` — accepts the new `runner` input, sets up the
+  apt-cacher-ng host alias, mounts the shared caches, and uses
+  `localhost:5000/moodle-ci-base:latest` when `runner: ubuntu-self-hosted`.
+- `.github/plugin/setup/action.yml` — routes apt through apt-cacher-ng,
+  replaces `shivammathur/setup-php` with an `update-alternatives` step,
+  and clones Moodle through the bare mirror via
+  `git clone --reference-if-able`.
+- `moodle-ci-base.Dockerfile` — new file; PHP-baked base image.
+
+Run `git log --oneline upstream/main..main` to see the exact commit list.
+
