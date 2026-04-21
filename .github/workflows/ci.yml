@@ -187,7 +187,12 @@ jobs:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
-      image: ubuntu:24.04
+      # Pre-built image on the self-hosted host: ubuntu:24.04 + all the apt
+      # packages + html5validator + git safe.directory, built from the
+      # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
+      # back to plain ubuntu:24.04 if the image is missing (the 'Install
+      # container prerequisites' step still apt-gets what is needed).
+      image: moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -269,7 +274,12 @@ jobs:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
-      image: ubuntu:24.04
+      # Pre-built image on the self-hosted host: ubuntu:24.04 + all the apt
+      # packages + html5validator + git safe.directory, built from the
+      # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
+      # back to plain ubuntu:24.04 if the image is missing (the 'Install
+      # container prerequisites' step still apt-gets what is needed).
+      image: moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -284,8 +294,16 @@ jobs:
     needs: prepare_matrix
     steps:
       - name: Install container prerequisites
+        # moodle-ci-base:latest already ships all the apt packages plus the
+        # git safe.directory config. This step is a fast presence check;
+        # it only runs apt-get if the image is the plain ubuntu:24.04
+        # fallback.
         run: |
-          set -eux
+          set -eu
+          if command -v jq >/dev/null && command -v python3 >/dev/null && command -v gcc >/dev/null; then
+            echo "prereqs already present in base image"
+            exit 0
+          fi
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y --no-install-recommends \
@@ -329,7 +347,12 @@ jobs:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
-      image: ubuntu:24.04
+      # Pre-built image on the self-hosted host: ubuntu:24.04 + all the apt
+      # packages + html5validator + git safe.directory, built from the
+      # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
+      # back to plain ubuntu:24.04 if the image is missing (the 'Install
+      # container prerequisites' step still apt-gets what is needed).
+      image: moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -357,14 +380,15 @@ jobs:
           --health-retries 3
     steps:
       - name: Install container prerequisites
-        # ubuntu:24.04 is minimal; install the base tools that actions and
-        # moodle-plugin-ci expect. shivammathur/setup-php requires:
-        # bash coreutils curl file git grep jq sudo tar unzip wget.
-        # Plus DB clients, build tools for PHP extensions, and locales
-        # (Moodle PHPUnit expects en_AU.UTF-8). html5validator is required
-        # by Moodle's mustache_lint_util.php for mustache step.
+        # moodle-ci-base:latest already ships all apt packages + html5validator
+        # + git safe.directory config. This step is a fast presence check and
+        # only runs apt-get if the image is the plain ubuntu:24.04 fallback.
         run: |
-          set -eux
+          set -eu
+          if command -v jq >/dev/null && command -v html5validator >/dev/null && command -v mysql >/dev/null && command -v psql >/dev/null; then
+            echo "prereqs already present in base image"
+            exit 0
+          fi
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y --no-install-recommends \
@@ -417,7 +441,12 @@ jobs:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
-      image: ubuntu:24.04
+      # Pre-built image on the self-hosted host: ubuntu:24.04 + all the apt
+      # packages + html5validator + git safe.directory, built from the
+      # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
+      # back to plain ubuntu:24.04 if the image is missing (the 'Install
+      # container prerequisites' step still apt-gets what is needed).
+      image: moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -432,8 +461,16 @@ jobs:
     needs: prepare_matrix
     steps:
       - name: Install container prerequisites
+        # moodle-ci-base:latest already ships all the apt packages plus the
+        # git safe.directory config. This step is a fast presence check;
+        # it only runs apt-get if the image is the plain ubuntu:24.04
+        # fallback.
         run: |
-          set -eux
+          set -eu
+          if command -v jq >/dev/null && command -v python3 >/dev/null && command -v gcc >/dev/null; then
+            echo "prereqs already present in base image"
+            exit 0
+          fi
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y --no-install-recommends \
@@ -476,7 +513,12 @@ jobs:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
-      image: ubuntu:24.04
+      # Pre-built image on the self-hosted host: ubuntu:24.04 + all the apt
+      # packages + html5validator + git safe.directory, built from the
+      # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
+      # back to plain ubuntu:24.04 if the image is missing (the 'Install
+      # container prerequisites' step still apt-gets what is needed).
+      image: moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -504,14 +546,15 @@ jobs:
           --health-retries 3
     steps:
       - name: Install container prerequisites
-        # ubuntu:24.04 is minimal; install the base tools that actions and
-        # moodle-plugin-ci expect. shivammathur/setup-php requires:
-        # bash coreutils curl file git grep jq sudo tar unzip wget.
-        # Plus DB clients, build tools for PHP extensions, and locales
-        # (Moodle PHPUnit expects en_AU.UTF-8). html5validator is required
-        # by Moodle's mustache_lint_util.php for mustache step.
+        # moodle-ci-base:latest already ships all apt packages + html5validator
+        # + git safe.directory config. This step is a fast presence check and
+        # only runs apt-get if the image is the plain ubuntu:24.04 fallback.
         run: |
-          set -eux
+          set -eu
+          if command -v jq >/dev/null && command -v html5validator >/dev/null && command -v mysql >/dev/null && command -v psql >/dev/null; then
+            echo "prereqs already present in base image"
+            exit 0
+          fi
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y --no-install-recommends \
@@ -563,7 +606,12 @@ jobs:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
-      image: ubuntu:24.04
+      # Pre-built image on the self-hosted host: ubuntu:24.04 + all the apt
+      # packages + html5validator + git safe.directory, built from the
+      # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
+      # back to plain ubuntu:24.04 if the image is missing (the 'Install
+      # container prerequisites' step still apt-gets what is needed).
+      image: moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -591,14 +639,15 @@ jobs:
           --health-retries 3
     steps:
       - name: Install container prerequisites
-        # ubuntu:24.04 is minimal; install the base tools that actions and
-        # moodle-plugin-ci expect. shivammathur/setup-php requires:
-        # bash coreutils curl file git grep jq sudo tar unzip wget.
-        # Plus DB clients, build tools for PHP extensions, and locales
-        # (Moodle PHPUnit expects en_AU.UTF-8). html5validator is required
-        # by Moodle's mustache_lint_util.php for mustache step.
+        # moodle-ci-base:latest already ships all apt packages + html5validator
+        # + git safe.directory config. This step is a fast presence check and
+        # only runs apt-get if the image is the plain ubuntu:24.04 fallback.
         run: |
-          set -eux
+          set -eu
+          if command -v jq >/dev/null && command -v html5validator >/dev/null && command -v mysql >/dev/null && command -v psql >/dev/null; then
+            echo "prereqs already present in base image"
+            exit 0
+          fi
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y --no-install-recommends \
@@ -651,7 +700,12 @@ jobs:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
-      image: ubuntu:24.04
+      # Pre-built image on the self-hosted host: ubuntu:24.04 + all the apt
+      # packages + html5validator + git safe.directory, built from the
+      # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
+      # back to plain ubuntu:24.04 if the image is missing (the 'Install
+      # container prerequisites' step still apt-gets what is needed).
+      image: moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -666,8 +720,16 @@ jobs:
     needs: prepare_matrix
     steps:
       - name: Install container prerequisites
+        # moodle-ci-base:latest already ships all the apt packages plus the
+        # git safe.directory config. This step is a fast presence check;
+        # it only runs apt-get if the image is the plain ubuntu:24.04
+        # fallback.
         run: |
-          set -eux
+          set -eu
+          if command -v jq >/dev/null && command -v python3 >/dev/null && command -v gcc >/dev/null; then
+            echo "prereqs already present in base image"
+            exit 0
+          fi
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y --no-install-recommends \
@@ -711,7 +773,12 @@ jobs:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
-      image: ubuntu:24.04
+      # Pre-built image on the self-hosted host: ubuntu:24.04 + all the apt
+      # packages + html5validator + git safe.directory, built from the
+      # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
+      # back to plain ubuntu:24.04 if the image is missing (the 'Install
+      # container prerequisites' step still apt-gets what is needed).
+      image: moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -726,8 +793,16 @@ jobs:
     needs: prepare_matrix
     steps:
       - name: Install container prerequisites
+        # moodle-ci-base:latest already ships all the apt packages plus the
+        # git safe.directory config. This step is a fast presence check;
+        # it only runs apt-get if the image is the plain ubuntu:24.04
+        # fallback.
         run: |
-          set -eux
+          set -eu
+          if command -v jq >/dev/null && command -v python3 >/dev/null && command -v gcc >/dev/null; then
+            echo "prereqs already present in base image"
+            exit 0
+          fi
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y --no-install-recommends \
@@ -797,7 +872,12 @@ jobs:
       cancel-in-progress: true
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
-      image: ubuntu:24.04
+      # Pre-built image on the self-hosted host: ubuntu:24.04 + all the apt
+      # packages + html5validator + git safe.directory, built from the
+      # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
+      # back to plain ubuntu:24.04 if the image is missing (the 'Install
+      # container prerequisites' step still apt-gets what is needed).
+      image: moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -834,14 +914,15 @@ jobs:
           --health-retries 3
     steps:
       - name: Install container prerequisites
-        # ubuntu:24.04 is minimal; install the base tools that actions and
-        # moodle-plugin-ci expect. shivammathur/setup-php requires:
-        # bash coreutils curl file git grep jq sudo tar unzip wget.
-        # Plus DB clients, build tools for PHP extensions, and locales
-        # (Moodle PHPUnit expects en_AU.UTF-8). html5validator is required
-        # by Moodle's mustache_lint_util.php for mustache step.
+        # moodle-ci-base:latest already ships all apt packages + html5validator
+        # + git safe.directory config. This step is a fast presence check and
+        # only runs apt-get if the image is the plain ubuntu:24.04 fallback.
         run: |
-          set -eux
+          set -eu
+          if command -v jq >/dev/null && command -v html5validator >/dev/null && command -v mysql >/dev/null && command -v psql >/dev/null; then
+            echo "prereqs already present in base image"
+            exit 0
+          fi
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y --no-install-recommends \
@@ -907,7 +988,12 @@ jobs:
       cancel-in-progress: true
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
-      image: ubuntu:24.04
+      # Pre-built image on the self-hosted host: ubuntu:24.04 + all the apt
+      # packages + html5validator + git safe.directory, built from the
+      # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
+      # back to plain ubuntu:24.04 if the image is missing (the 'Install
+      # container prerequisites' step still apt-gets what is needed).
+      image: moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -944,14 +1030,15 @@ jobs:
           --health-retries 3
     steps:
       - name: Install container prerequisites
-        # ubuntu:24.04 is minimal; install the base tools that actions and
-        # moodle-plugin-ci expect. shivammathur/setup-php requires:
-        # bash coreutils curl file git grep jq sudo tar unzip wget.
-        # Plus DB clients, build tools for PHP extensions, and locales
-        # (Moodle PHPUnit expects en_AU.UTF-8). html5validator is required
-        # by Moodle's mustache_lint_util.php for mustache step.
+        # moodle-ci-base:latest already ships all apt packages + html5validator
+        # + git safe.directory config. This step is a fast presence check and
+        # only runs apt-get if the image is the plain ubuntu:24.04 fallback.
         run: |
-          set -eux
+          set -eu
+          if command -v jq >/dev/null && command -v html5validator >/dev/null && command -v mysql >/dev/null && command -v psql >/dev/null; then
+            echo "prereqs already present in base image"
+            exit 0
+          fi
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y --no-install-recommends \
