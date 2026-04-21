@@ -51,12 +51,43 @@ runs:
         node-version: ${{ inputs.node }}
 
     - name: Setup PHP ${{ inputs.php }}
-      uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
-      with:
-        php-version: ${{ inputs.php }}
-        ini-values: max_input_vars=5000
-        extensions: pgsql, mysqli, zip, gd, xmlrpc, soap, ${{ inputs.extra_php_extensions }}
-        coverage: none
+      # The self-hosted container image (localhost:5000/moodle-ci-base) ships
+      # PHP 8.1-8.4 preinstalled via Ondrej's Launchpad PPA with all extensions
+      # Moodle needs (pgsql, mysqli, zip, gd, xmlrpc, soap, xml, mbstring, ...).
+      # shivammathur/setup-php breaks on pre-installed PHP with
+      # "semver: parameter null or not set" so we select the requested version
+      # with update-alternatives instead. Hosted (GitHub-provided) runners
+      # never hit this path because they do not use our container image.
+      shell: bash
+      run: |
+        set -euo pipefail
+        PHP_VER="${{ inputs.php }}"
+        if [ -x "/usr/bin/php${PHP_VER}" ]; then
+          for bin in php phar phar.phar php-config phpize; do
+            if [ -x "/usr/bin/${bin}${PHP_VER}" ]; then
+              update-alternatives --set "$bin" "/usr/bin/${bin}${PHP_VER}" >/dev/null 2>&1 || \
+                ln -sf "/usr/bin/${bin}${PHP_VER}" "/usr/bin/${bin}"
+            fi
+          done
+          echo "max_input_vars=5000" > "/etc/php/${PHP_VER}/cli/conf.d/99-moodle-ci.ini"
+          # Fallback install for any extension not already in the image.
+          EXTRA_EXT="${{ inputs.extra_php_extensions }}"
+          if [ -n "$EXTRA_EXT" ]; then
+            pkgs=""
+            for ext in $(echo "$EXTRA_EXT" | tr ',' ' '); do
+              ext="${ext// /}"
+              [ -z "$ext" ] && continue
+              php${PHP_VER} -m | grep -qi "^${ext}$" || pkgs="$pkgs php${PHP_VER}-${ext}"
+            done
+            if [ -n "$pkgs" ]; then
+              apt-get update -qq && apt-get install -y --no-install-recommends $pkgs
+            fi
+          fi
+          php --version
+        else
+          echo "::error::php${PHP_VER} not present in container; expected baked in at /usr/bin/php${PHP_VER}"
+          exit 1
+        fi
 
     - name: Configure Required Composer Version
       id: install-composer
