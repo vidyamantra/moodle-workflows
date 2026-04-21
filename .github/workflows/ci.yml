@@ -188,10 +188,17 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
       image: ubuntu:24.04
-      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
-      # can use git --reference-if-able against a shared bare mirror of
-      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
-      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
+      # Shared host caches saved via bind-mounts:
+      # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
+      # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
+      # - npm (rw):      reuse npm package downloads (moodle-local_ci deps)
+      env:
+        COMPOSER_CACHE_DIR: /mnt/ci-cache/composer
+        npm_config_cache: /mnt/ci-cache/npm
+      options: >-
+        --volume /srv/ci-cache/moodle.git:/mnt/ci-cache/moodle.git:ro
+        --volume /srv/ci-cache/composer:/mnt/ci-cache/composer:rw
+        --volume /srv/ci-cache/npm:/mnt/ci-cache/npm:rw
     needs: prepare_matrix
     steps:
       - name: Install container prerequisites
@@ -263,10 +270,17 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
       image: ubuntu:24.04
-      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
-      # can use git --reference-if-able against a shared bare mirror of
-      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
-      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
+      # Shared host caches saved via bind-mounts:
+      # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
+      # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
+      # - npm (rw):      reuse npm package downloads (moodle-local_ci deps)
+      env:
+        COMPOSER_CACHE_DIR: /mnt/ci-cache/composer
+        npm_config_cache: /mnt/ci-cache/npm
+      options: >-
+        --volume /srv/ci-cache/moodle.git:/mnt/ci-cache/moodle.git:ro
+        --volume /srv/ci-cache/composer:/mnt/ci-cache/composer:rw
+        --volume /srv/ci-cache/npm:/mnt/ci-cache/npm:rw
     needs: prepare_matrix
     steps:
       - name: Install container prerequisites
@@ -316,10 +330,17 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
       image: ubuntu:24.04
-      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
-      # can use git --reference-if-able against a shared bare mirror of
-      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
-      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
+      # Shared host caches saved via bind-mounts:
+      # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
+      # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
+      # - npm (rw):      reuse npm package downloads (moodle-local_ci deps)
+      env:
+        COMPOSER_CACHE_DIR: /mnt/ci-cache/composer
+        npm_config_cache: /mnt/ci-cache/npm
+      options: >-
+        --volume /srv/ci-cache/moodle.git:/mnt/ci-cache/moodle.git:ro
+        --volume /srv/ci-cache/composer:/mnt/ci-cache/composer:rw
+        --volume /srv/ci-cache/npm:/mnt/ci-cache/npm:rw
     needs: prepare_matrix
     env:
       DB_HOST: pgsql
@@ -397,10 +418,17 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
       image: ubuntu:24.04
-      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
-      # can use git --reference-if-able against a shared bare mirror of
-      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
-      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
+      # Shared host caches saved via bind-mounts:
+      # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
+      # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
+      # - npm (rw):      reuse npm package downloads (moodle-local_ci deps)
+      env:
+        COMPOSER_CACHE_DIR: /mnt/ci-cache/composer
+        npm_config_cache: /mnt/ci-cache/npm
+      options: >-
+        --volume /srv/ci-cache/moodle.git:/mnt/ci-cache/moodle.git:ro
+        --volume /srv/ci-cache/composer:/mnt/ci-cache/composer:rw
+        --volume /srv/ci-cache/npm:/mnt/ci-cache/npm:rw
     needs: prepare_matrix
     steps:
       - name: Install container prerequisites
@@ -449,10 +477,17 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
       image: ubuntu:24.04
-      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
-      # can use git --reference-if-able against a shared bare mirror of
-      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
-      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
+      # Shared host caches saved via bind-mounts:
+      # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
+      # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
+      # - npm (rw):      reuse npm package downloads (moodle-local_ci deps)
+      env:
+        COMPOSER_CACHE_DIR: /mnt/ci-cache/composer
+        npm_config_cache: /mnt/ci-cache/npm
+      options: >-
+        --volume /srv/ci-cache/moodle.git:/mnt/ci-cache/moodle.git:ro
+        --volume /srv/ci-cache/composer:/mnt/ci-cache/composer:rw
+        --volume /srv/ci-cache/npm:/mnt/ci-cache/npm:rw
     needs: prepare_matrix
     env:
       DB_HOST: pgsql
@@ -529,10 +564,17 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
       image: ubuntu:24.04
-      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
-      # can use git --reference-if-able against a shared bare mirror of
-      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
-      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
+      # Shared host caches saved via bind-mounts:
+      # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
+      # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
+      # - npm (rw):      reuse npm package downloads (moodle-local_ci deps)
+      env:
+        COMPOSER_CACHE_DIR: /mnt/ci-cache/composer
+        npm_config_cache: /mnt/ci-cache/npm
+      options: >-
+        --volume /srv/ci-cache/moodle.git:/mnt/ci-cache/moodle.git:ro
+        --volume /srv/ci-cache/composer:/mnt/ci-cache/composer:rw
+        --volume /srv/ci-cache/npm:/mnt/ci-cache/npm:rw
     needs: prepare_matrix
     env:
       DB_HOST: pgsql
@@ -610,10 +652,17 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
       image: ubuntu:24.04
-      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
-      # can use git --reference-if-able against a shared bare mirror of
-      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
-      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
+      # Shared host caches saved via bind-mounts:
+      # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
+      # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
+      # - npm (rw):      reuse npm package downloads (moodle-local_ci deps)
+      env:
+        COMPOSER_CACHE_DIR: /mnt/ci-cache/composer
+        npm_config_cache: /mnt/ci-cache/npm
+      options: >-
+        --volume /srv/ci-cache/moodle.git:/mnt/ci-cache/moodle.git:ro
+        --volume /srv/ci-cache/composer:/mnt/ci-cache/composer:rw
+        --volume /srv/ci-cache/npm:/mnt/ci-cache/npm:rw
     needs: prepare_matrix
     steps:
       - name: Install container prerequisites
@@ -663,10 +712,17 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
       image: ubuntu:24.04
-      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
-      # can use git --reference-if-able against a shared bare mirror of
-      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
-      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
+      # Shared host caches saved via bind-mounts:
+      # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
+      # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
+      # - npm (rw):      reuse npm package downloads (moodle-local_ci deps)
+      env:
+        COMPOSER_CACHE_DIR: /mnt/ci-cache/composer
+        npm_config_cache: /mnt/ci-cache/npm
+      options: >-
+        --volume /srv/ci-cache/moodle.git:/mnt/ci-cache/moodle.git:ro
+        --volume /srv/ci-cache/composer:/mnt/ci-cache/composer:rw
+        --volume /srv/ci-cache/npm:/mnt/ci-cache/npm:rw
     needs: prepare_matrix
     steps:
       - name: Install container prerequisites
@@ -742,10 +798,17 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
       image: ubuntu:24.04
-      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
-      # can use git --reference-if-able against a shared bare mirror of
-      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
-      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
+      # Shared host caches saved via bind-mounts:
+      # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
+      # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
+      # - npm (rw):      reuse npm package downloads (moodle-local_ci deps)
+      env:
+        COMPOSER_CACHE_DIR: /mnt/ci-cache/composer
+        npm_config_cache: /mnt/ci-cache/npm
+      options: >-
+        --volume /srv/ci-cache/moodle.git:/mnt/ci-cache/moodle.git:ro
+        --volume /srv/ci-cache/composer:/mnt/ci-cache/composer:rw
+        --volume /srv/ci-cache/npm:/mnt/ci-cache/npm:rw
     services:
       postgres:
         image: "postgres:${{ matrix.pgsql-ver }}"
@@ -845,10 +908,17 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     container:
       image: ubuntu:24.04
-      # Mount the host's /srv/ci-cache read-only so the 'Clone Moodle' step
-      # can use git --reference-if-able against a shared bare mirror of
-      # moodle.git (~3 GB). Without this, every job clones moodle fresh.
-      options: --volume /srv/ci-cache:/mnt/ci-cache:ro
+      # Shared host caches saved via bind-mounts:
+      # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
+      # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
+      # - npm (rw):      reuse npm package downloads (moodle-local_ci deps)
+      env:
+        COMPOSER_CACHE_DIR: /mnt/ci-cache/composer
+        npm_config_cache: /mnt/ci-cache/npm
+      options: >-
+        --volume /srv/ci-cache/moodle.git:/mnt/ci-cache/moodle.git:ro
+        --volume /srv/ci-cache/composer:/mnt/ci-cache/composer:rw
+        --volume /srv/ci-cache/npm:/mnt/ci-cache/npm:rw
     services:
       postgres:
         image: "postgres:${{ matrix.pgsql-ver }}"
