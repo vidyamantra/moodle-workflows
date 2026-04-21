@@ -377,6 +377,7 @@ jobs:
           POSTGRES_USER: 'postgres'
           POSTGRES_HOST_AUTH_METHOD: 'trust'
         options: >-
+          --tmpfs /var/lib/postgresql/data:rw,size=2g
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
@@ -545,6 +546,7 @@ jobs:
           POSTGRES_USER: 'postgres'
           POSTGRES_HOST_AUTH_METHOD: 'trust'
         options: >-
+          --tmpfs /var/lib/postgresql/data:rw,size=2g
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
@@ -639,6 +641,7 @@ jobs:
           POSTGRES_USER: 'postgres'
           POSTGRES_HOST_AUTH_METHOD: 'trust'
         options: >-
+          --tmpfs /var/lib/postgresql/data:rw,size=2g
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
@@ -905,6 +908,7 @@ jobs:
           POSTGRES_USER: 'postgres'
           POSTGRES_HOST_AUTH_METHOD: 'trust'
         options: >-
+          --tmpfs /var/lib/postgresql/data:rw,size=2g
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
@@ -917,6 +921,7 @@ jobs:
           MYSQL_CHARACTER_SET_SERVER: "utf8mb4"
           MYSQL_COLLATION_SERVER: "utf8mb4_unicode_ci"
         options: >-
+          --tmpfs /var/lib/mysql:rw,size=2g
           --health-cmd="mysqladmin ping"
           --health-interval 10s
           --health-timeout 5s
@@ -1022,6 +1027,7 @@ jobs:
           POSTGRES_USER: 'postgres'
           POSTGRES_HOST_AUTH_METHOD: 'trust'
         options: >-
+          --tmpfs /var/lib/postgresql/data:rw,size=2g
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
@@ -1034,6 +1040,7 @@ jobs:
           MYSQL_CHARACTER_SET_SERVER: "utf8mb4"
           MYSQL_COLLATION_SERVER: "utf8mb4_unicode_ci"
         options: >-
+          --tmpfs /var/lib/mysql:rw,size=2g
           --health-cmd="mysqladmin ping"
           --health-interval 10s
           --health-timeout 5s
