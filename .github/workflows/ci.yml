@@ -192,7 +192,7 @@ jobs:
       # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
       # back to plain ubuntu:24.04 if the image is missing (the 'Install
       # container prerequisites' step still apt-gets what is needed).
-      image: moodle-ci-base:latest
+      image: localhost:5000/moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -279,7 +279,7 @@ jobs:
       # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
       # back to plain ubuntu:24.04 if the image is missing (the 'Install
       # container prerequisites' step still apt-gets what is needed).
-      image: moodle-ci-base:latest
+      image: localhost:5000/moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -352,7 +352,7 @@ jobs:
       # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
       # back to plain ubuntu:24.04 if the image is missing (the 'Install
       # container prerequisites' step still apt-gets what is needed).
-      image: moodle-ci-base:latest
+      image: localhost:5000/moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -446,7 +446,7 @@ jobs:
       # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
       # back to plain ubuntu:24.04 if the image is missing (the 'Install
       # container prerequisites' step still apt-gets what is needed).
-      image: moodle-ci-base:latest
+      image: localhost:5000/moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -518,7 +518,7 @@ jobs:
       # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
       # back to plain ubuntu:24.04 if the image is missing (the 'Install
       # container prerequisites' step still apt-gets what is needed).
-      image: moodle-ci-base:latest
+      image: localhost:5000/moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -611,7 +611,7 @@ jobs:
       # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
       # back to plain ubuntu:24.04 if the image is missing (the 'Install
       # container prerequisites' step still apt-gets what is needed).
-      image: moodle-ci-base:latest
+      image: localhost:5000/moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -705,7 +705,7 @@ jobs:
       # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
       # back to plain ubuntu:24.04 if the image is missing (the 'Install
       # container prerequisites' step still apt-gets what is needed).
-      image: moodle-ci-base:latest
+      image: localhost:5000/moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -778,7 +778,7 @@ jobs:
       # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
       # back to plain ubuntu:24.04 if the image is missing (the 'Install
       # container prerequisites' step still apt-gets what is needed).
-      image: moodle-ci-base:latest
+      image: localhost:5000/moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -877,7 +877,7 @@ jobs:
       # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
       # back to plain ubuntu:24.04 if the image is missing (the 'Install
       # container prerequisites' step still apt-gets what is needed).
-      image: moodle-ci-base:latest
+      image: localhost:5000/moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
@@ -993,7 +993,7 @@ jobs:
       # moodle-ci-base.Dockerfile committed alongside this workflow. Falls
       # back to plain ubuntu:24.04 if the image is missing (the 'Install
       # container prerequisites' step still apt-gets what is needed).
-      image: moodle-ci-base:latest
+      image: localhost:5000/moodle-ci-base:latest
       # Shared host caches saved via bind-mounts:
       # - moodle.git (ro): git --reference-if-able instead of a 3 GB clone
       # - composer (rw): reuse composer package downloads (~100 MB, ~1-2 min)
