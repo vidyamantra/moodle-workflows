@@ -174,8 +174,26 @@ jobs:
   codechecker:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
+    container: ubuntu:24.04
     needs: prepare_matrix
     steps:
+      - name: Install container prerequisites
+        # ubuntu:24.04 is minimal; install the base tools that actions and
+        # moodle-plugin-ci expect. Running inside a container isolates
+        # shivammathur/setup-php's alternative/PATH changes so concurrent
+        # jobs on the same self-hosted host don't race on /usr/bin/php.
+        run: |
+          set -eux
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            bash coreutils curl file git grep jq sudo tar unzip wget \
+            ca-certificates gnupg lsb-release python3 python3-pip \
+            make gcc \
+            libxml2-dev libzip-dev libpng-dev libonig-dev \
+            locales
+          git config --global --add safe.directory '*'
+        shell: bash
       - name: Check out CI code
         uses: actions/checkout@v3
         with:
@@ -213,11 +231,30 @@ jobs:
           fi
           /tmp/phpcompat/vendor/bin/phpcs --standard=PHPCompatibility --runtime-set testVersion ${{ needs.prepare_matrix.outputs.lowest_php || inputs.min_php }} --ignore=$ignore ./plugin
         shell: bash
+      - name: Chown workspace back to host runner UID
+        if: always()
+        run: |
+          chown -R "${HOST_UID:-1001}:${HOST_GID:-1001}" "$GITHUB_WORKSPACE" 2>/dev/null || true
+        shell: bash
   phplint:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
+    container: ubuntu:24.04
     needs: prepare_matrix
     steps:
+      - name: Install container prerequisites
+        run: |
+          set -eux
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            bash coreutils curl file git grep jq sudo tar unzip wget \
+            ca-certificates gnupg lsb-release python3 python3-pip \
+            make gcc \
+            libxml2-dev libzip-dev libpng-dev libonig-dev \
+            locales
+          git config --global --add safe.directory '*'
+        shell: bash
       - name: Check out CI code
         uses: actions/checkout@v3
         with:
@@ -236,6 +273,11 @@ jobs:
       - name: Run phplint
         if: ${{ inputs.disable_phplint != true }}
         run: moodle-plugin-ci phplint ./plugin
+        shell: bash
+      - name: Chown workspace back to host runner UID
+        if: always()
+        run: |
+          chown -R "${HOST_UID:-1001}:${HOST_GID:-1001}" "$GITHUB_WORKSPACE" 2>/dev/null || true
         shell: bash
   validate:
     if: needs.pre_job.outputs.should_skip != 'true'
@@ -311,8 +353,22 @@ jobs:
     name: Savepoints
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
+    container: ubuntu:24.04
     needs: prepare_matrix
     steps:
+      - name: Install container prerequisites
+        run: |
+          set -eux
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            bash coreutils curl file git grep jq sudo tar unzip wget \
+            ca-certificates gnupg lsb-release python3 python3-pip \
+            make gcc \
+            libxml2-dev libzip-dev libpng-dev libonig-dev \
+            locales
+          git config --global --add safe.directory '*'
+        shell: bash
       - name: Check out CI code
         uses: actions/checkout@v3
         with:
@@ -330,6 +386,11 @@ jobs:
           moodle_branch: ${{ needs.prepare_matrix.outputs.highest_moodle_branch }}
       - name: Run savepoints
         run: moodle-plugin-ci savepoints ./plugin
+        shell: bash
+      - name: Chown workspace back to host runner UID
+        if: always()
+        run: |
+          chown -R "${HOST_UID:-1001}:${HOST_GID:-1001}" "$GITHUB_WORKSPACE" 2>/dev/null || true
         shell: bash
   mustache:
     if: needs.pre_job.outputs.should_skip != 'true'
@@ -475,8 +536,22 @@ jobs:
   phpmd:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
+    container: ubuntu:24.04
     needs: prepare_matrix
     steps:
+      - name: Install container prerequisites
+        run: |
+          set -eux
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            bash coreutils curl file git grep jq sudo tar unzip wget \
+            ca-certificates gnupg lsb-release python3 python3-pip \
+            make gcc \
+            libxml2-dev libzip-dev libpng-dev libonig-dev \
+            locales
+          git config --global --add safe.directory '*'
+        shell: bash
       - name: Check out CI code
         uses: actions/checkout@v3
         with:
@@ -496,11 +571,30 @@ jobs:
         if: ${{ inputs.enable_phpmd == true }}
         run: moodle-plugin-ci phpmd ./plugin
         shell: bash
+      - name: Chown workspace back to host runner UID
+        if: always()
+        run: |
+          chown -R "${HOST_UID:-1001}:${HOST_GID:-1001}" "$GITHUB_WORKSPACE" 2>/dev/null || true
+        shell: bash
   phpdoc:
     if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ fromJSON(inputs.runner) }}
+    container: ubuntu:24.04
     needs: prepare_matrix
     steps:
+      - name: Install container prerequisites
+        run: |
+          set -eux
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            bash coreutils curl file git grep jq sudo tar unzip wget \
+            ca-certificates gnupg lsb-release python3 python3-pip \
+            make gcc \
+            libxml2-dev libzip-dev libpng-dev libonig-dev \
+            locales
+          git config --global --add safe.directory '*'
+        shell: bash
       - name: Check out CI code
         uses: actions/checkout@v3
         with:
@@ -534,6 +628,11 @@ jobs:
             exit 1
           fi
           echo "phpdoc checks - OK"
+        shell: bash
+      - name: Chown workspace back to host runner UID
+        if: always()
+        run: |
+          chown -R "${HOST_UID:-1001}:${HOST_GID:-1001}" "$GITHUB_WORKSPACE" 2>/dev/null || true
         shell: bash
   phpunit:
     name: ${{ matrix.moodle-branch-short }} - phpunit - php${{ matrix.php }} - ${{ matrix.database }}
