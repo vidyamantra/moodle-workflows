@@ -79,16 +79,20 @@ jobs:
    runs-on: ${{ fromJSON(inputs.runner) }}
    # Map a step output to a job output
    outputs:
-     should_skip: ${{ steps.skip_check.outputs.should_skip }}
+     should_skip: ${{ steps.skip_check.outputs.should_skip || 'false' }}
    steps:
      - id: skip_check
        # docs: https://github.com/fkirc/skip-duplicate-actions#skip-concurrent-workflow-runs
        uses: fkirc/skip-duplicate-actions@04a1aebece824b56e6ad6a401d015479cd1c50b3 # Oct 9, 2024 commit (current latest)
+       continue-on-error: true
        with:
          # Do not trust previous successful runs
          skip_after_successful_duplicate: false
          # Ensure should_skip is true only if 2 concurrent workflows are working on the same files (content)
          concurrent_skipping: ${{ inputs.concurrent_skipping }}
+     - name: Continue if duplicate check failed
+       if: steps.skip_check.outcome == 'failure'
+       run: echo "Duplicate workflow check failed; continuing with CI."
   prepare_matrix:
     needs: pre_job
     if: needs.pre_job.outputs.should_skip != 'true'
