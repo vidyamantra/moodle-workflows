@@ -52,42 +52,75 @@ runs:
 
     - name: Setup PHP ${{ inputs.php }}
       # The self-hosted container image (localhost:5000/moodle-ci-base) ships
-      # PHP 8.1-8.4 preinstalled via Ondrej's Launchpad PPA with all extensions
-      # Moodle needs (pgsql, mysqli, zip, gd, xmlrpc, soap, xml, mbstring, ...).
-      # shivammathur/setup-php breaks on pre-installed PHP with
-      # "semver: parameter null or not set" so we select the requested version
-      # with update-alternatives instead. Hosted (GitHub-provided) runners
-      # never hit this path because they do not use our container image.
+      # common PHP versions preinstalled via Ondrej's Launchpad PPA with all
+      # extensions Moodle needs (pgsql, mysqli, zip, gd, xmlrpc, soap, xml,
+      # mbstring, intl, curl, ...). If an older image is missing the requested
+      # PHP version, install it in this job container instead of failing before
+      # tests start.
       shell: bash
       run: |
         set -euo pipefail
+        export DEBIAN_FRONTEND=noninteractive
+
         PHP_VER="${{ inputs.php }}"
-        if [ -x "/usr/bin/php${PHP_VER}" ]; then
-          for bin in php phar phar.phar php-config phpize; do
-            if [ -x "/usr/bin/${bin}${PHP_VER}" ]; then
-              update-alternatives --set "$bin" "/usr/bin/${bin}${PHP_VER}" >/dev/null 2>&1 || \
-                ln -sf "/usr/bin/${bin}${PHP_VER}" "/usr/bin/${bin}"
-            fi
-          done
-          echo "max_input_vars=5000" > "/etc/php/${PHP_VER}/cli/conf.d/99-moodle-ci.ini"
-          # Fallback install for any extension not already in the image.
-          EXTRA_EXT="${{ inputs.extra_php_extensions }}"
-          if [ -n "$EXTRA_EXT" ]; then
-            pkgs=""
-            for ext in $(echo "$EXTRA_EXT" | tr ',' ' '); do
-              ext="${ext// /}"
-              [ -z "$ext" ] && continue
-              php${PHP_VER} -m | grep -qi "^${ext}$" || pkgs="$pkgs php${PHP_VER}-${ext}"
-            done
-            if [ -n "$pkgs" ]; then
-              apt-get update -qq && apt-get install -y --no-install-recommends $pkgs
-            fi
+
+        ensure_ondrej_ppa() {
+          if grep -Rqs "ppa.launchpadcontent.net/ondrej/php" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
+            return
           fi
-          php --version
-        else
-          echo "::error::php${PHP_VER} not present in container; expected baked in at /usr/bin/php${PHP_VER}"
+          apt-get update -qq
+          apt-get install -y --no-install-recommends ca-certificates software-properties-common
+          add-apt-repository -y ppa:ondrej/php
+        }
+
+        install_php_version() {
+          ensure_ondrej_ppa
+          apt-get update -qq
+
+          pkgs="php${PHP_VER}-cli php${PHP_VER}-common"
+          for ext in curl gd intl mbstring mysql pgsql soap xml xmlrpc zip; do
+            pkgs="$pkgs php${PHP_VER}-${ext}"
+          done
+
+          apt-get install -y --no-install-recommends $pkgs
+        }
+
+        if [ ! -x "/usr/bin/php${PHP_VER}" ]; then
+          echo "php${PHP_VER} not present in container; installing from Ondrej PPA"
+          install_php_version
+        fi
+
+        if [ ! -x "/usr/bin/php${PHP_VER}" ]; then
+          echo "::error::php${PHP_VER} is unavailable after installation"
           exit 1
         fi
+
+        for bin in php phar phar.phar php-config phpize; do
+          if [ -x "/usr/bin/${bin}${PHP_VER}" ]; then
+            update-alternatives --set "$bin" "/usr/bin/${bin}${PHP_VER}" >/dev/null 2>&1 || \
+              ln -sf "/usr/bin/${bin}${PHP_VER}" "/usr/bin/${bin}"
+          fi
+        done
+
+        echo "max_input_vars=5000" > "/etc/php/${PHP_VER}/cli/conf.d/99-moodle-ci.ini"
+
+        # Fallback install for any extension not already in the image.
+        EXTRA_EXT="${{ inputs.extra_php_extensions }}"
+        if [ -n "$EXTRA_EXT" ]; then
+          pkgs=""
+          for ext in $(echo "$EXTRA_EXT" | tr ',' ' '); do
+            ext="${ext// /}"
+            [ -z "$ext" ] && continue
+            php${PHP_VER} -m | grep -qi "^${ext}$" || pkgs="$pkgs php${PHP_VER}-${ext}"
+          done
+          if [ -n "$pkgs" ]; then
+            ensure_ondrej_ppa
+            apt-get update -qq
+            apt-get install -y --no-install-recommends $pkgs
+          fi
+        fi
+
+        php --version
 
     - name: Configure Required Composer Version
       id: install-composer

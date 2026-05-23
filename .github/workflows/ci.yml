@@ -66,9 +66,9 @@ on:
         type: string
         default: 'same_content_newer'
       runner:
-        description: 'JSON-encoded array of runner labels. Default is ["ubuntu-latest"]. For a self-hosted runner, pass e.g. ''["self-hosted","hetzner"]''.'
+        description: 'JSON-encoded array of runner labels. Defaults to the Vidyamantra self-hosted runner pool.'
         type: string
-        default: '["ubuntu-latest"]'
+        default: '["self-hosted","hetzner"]'
     secrets:
       moodle_org_token:
         required: false

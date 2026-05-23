@@ -198,16 +198,15 @@ with:
 ## Moodiy self-hosted runner customisations
 
 This fork extends the upstream Catalyst reusable workflows with a self-hosted
-runner backend. Hosted runners (GitHub's cloud runners) remain supported and
-unchanged; to opt in to the self-hosted path, set `runner: ubuntu-self-hosted`
-on the caller workflow:
+runner backend and defaults to the Vidyamantra runner pool. Caller workflows
+can pass runner labels explicitly when they need to target a different pool:
 
 ```yml
 jobs:
   test:
     uses: vidyamantra/moodle-workflows/.github/workflows/ci.yml@main
     with:
-      runner: ubuntu-self-hosted
+      runner: '["self-hosted","hetzner"]'
 ```
 
 ### Runtime architecture
@@ -222,7 +221,7 @@ an isolated `/usr/bin/php` so 30+ concurrent matrix jobs no longer race on
 GitHub Actions job
   └─ runner (one of 32) on runners.vidyamantra.com
       └─ container: localhost:5000/moodle-ci-base:latest
-           ├─ PHP 8.1, 8.2, 8.3, 8.4 pre-installed (Ondrej PPA)
+           ├─ PHP 7.4, 8.0, 8.1, 8.2, 8.3, 8.4 pre-installed (Ondrej PPA)
            ├─ composer, default-jre-headless, html5validator
            └─ workspace/composer/npm caches bind-mounted from host
 ```
@@ -246,8 +245,9 @@ setup costs on every invocation:
 `shivammathur/setup-php` fails against a container image that already has
 PHP installed (`semver: parameter null or not set`). The composite setup
 action at `.github/plugin/setup/action.yml` therefore selects the requested
-PHP version with `update-alternatives` and only shells out to `apt-get` for
-extensions that are not baked into the base image:
+PHP version with `update-alternatives`. If an older base image is still
+missing a requested version, the action installs that version from Ondrej's
+Launchpad PPA inside the job container before selecting it.
 
 ```yml
 - name: Setup PHP ${{ inputs.php }}
@@ -262,14 +262,11 @@ extensions that are not baked into the base image:
     ...
 ```
 
-Hosted runners (those without the container image) never hit this path
-because the `runner` input stays at `ubuntu-latest`.
-
 ### Base image
 
 `moodle-ci-base.Dockerfile` at the top of this repo is the source of truth
-for the runner container image. It pulls PHP 8.1–8.4 plus all extensions
-Moodle needs (`pgsql`, `mysqli`, `zip`, `gd`, `xmlrpc`, `soap`, `xml`,
+for the runner container image. It pulls PHP 7.4, 8.0 and 8.1-8.4 plus all
+extensions Moodle needs (`pgsql`, `mysqli`, `zip`, `gd`, `xmlrpc`, `soap`, `xml`,
 `mbstring`, `intl`, `curl`, `opcache`, `readline`) from Ondrej's
 **Launchpad PPA** (`http://ppa.launchpad.net/ondrej/php/ubuntu`). We moved
 off `packages.sury.org` because Cloudflare rate-limits concurrent apt
@@ -305,4 +302,3 @@ in three files:
 - `moodle-ci-base.Dockerfile` — new file; PHP-baked base image.
 
 Run `git log --oneline upstream/main..main` to see the exact commit list.
-
