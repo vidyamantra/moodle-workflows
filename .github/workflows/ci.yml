@@ -151,7 +151,6 @@ jobs:
           path: ci
           repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
-          token: ${{ github.token }}
       - name: Check out plugin code
         uses: actions/checkout@v3
         with:
@@ -234,7 +233,6 @@ jobs:
           path: ci
           repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
-          token: ${{ github.token }}
       - name: Run plugin setup (canonical)
         uses: ./ci/.github/plugin/setup
         with:
@@ -326,7 +324,6 @@ jobs:
           path: ci
           repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
-          token: ${{ github.token }}
       - name: Run plugin setup (canonical)
         uses: ./ci/.github/plugin/setup
         with:
@@ -416,7 +413,6 @@ jobs:
           path: ci
           repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
-          token: ${{ github.token }}
       - name: Run plugin setup (canonical)
         uses: ./ci/.github/plugin/setup
         with:
@@ -496,7 +492,6 @@ jobs:
           path: ci
           repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
-          token: ${{ github.token }}
       - name: Run plugin setup (canonical)
         uses: ./ci/.github/plugin/setup
         with:
@@ -585,7 +580,6 @@ jobs:
           path: ci
           repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
-          token: ${{ github.token }}
       - name: Run plugin setup (canonical)
         uses: ./ci/.github/plugin/setup
         with:
@@ -680,7 +674,6 @@ jobs:
           path: ci
           repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
-          token: ${{ github.token }}
       - name: Run plugin setup (canonical)
         uses: ./ci/.github/plugin/setup
         with:
@@ -760,7 +753,6 @@ jobs:
           path: ci
           repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
-          token: ${{ github.token }}
       - name: Run plugin setup (canonical)
         uses: ./ci/.github/plugin/setup
         with:
@@ -834,7 +826,6 @@ jobs:
           path: ci
           repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
-          token: ${{ github.token }}
       - name: Run plugin setup (canonical)
         uses: ./ci/.github/plugin/setup
         with:
@@ -960,7 +951,6 @@ jobs:
           path: ci
           repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
-          token: ${{ github.token }}
       - name: Run plugin setup
         uses: ./ci/.github/plugin/setup
         with:
@@ -1079,7 +1069,6 @@ jobs:
           path: ci
           repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
-          token: ${{ github.token }}
       - name: Run plugin setup
         uses: ./ci/.github/plugin/setup
         with:
@@ -1156,7 +1145,6 @@ jobs:
           path: ci
           repository: vidyamantra/moodle-workflows
           ref: ${{ inputs.internal_workflow_branch }}
-          token: ${{ github.token }}
 
       - name: Run plugin release
         if: steps.check-secrets.outputs.has-secrets != ''
