@@ -143,8 +143,9 @@ runs:
         # Persistent self-hosted runners can leave a stale m-ci/ from a
         # prior run; composer create-project refuses to run into a
         # non-empty directory. Same for moodle/ (composite action's own
-        # clone target) and moodletemp/ used below.
-        rm -rf m-ci moodle moodletemp
+        # clone target), moodletemp/ used below, and the add-plugin storage
+        # directory used when caller workflows install dependencies.
+        rm -rf m-ci moodle moodletemp moodle-plugin-ci-plugins
 
         composer create-project -n --no-dev --prefer-dist moodlehq/moodle-plugin-ci m-ci ^4
         # Add dirs to $PATH
