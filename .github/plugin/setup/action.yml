@@ -122,6 +122,14 @@ runs:
 
         php --version
 
+        if ! composer --version >/dev/null 2>&1; then
+          echo "Installing Composer phar for PHP ${PHP_VER}"
+          curl -fsSL https://getcomposer.org/installer -o /tmp/composer-setup.php
+          php${PHP_VER} /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
+          rm /tmp/composer-setup.php
+        fi
+        composer --version
+
     - name: Configure Required Composer Version
       id: install-composer
       if: ${{ inputs.moodle_branch == 'MOODLE_32_STABLE' || inputs.moodle_branch == 'MOODLE_33_STABLE' }}
