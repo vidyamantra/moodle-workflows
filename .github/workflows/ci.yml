@@ -168,12 +168,28 @@ jobs:
           files: |
             version.php
           since_last_remote_commit: "true"
-      - name: Install PHP
-        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2.32.0
-        with:
-          php-version: '8.1'
-          coverage: none
-          # extensions: yaml # FYI: makes the workflow very slow
+      # The self-hosted runners share one host. setup-php switches its global
+      # /usr/bin/php alternative (and conf.d) under every other job running there,
+      # so put PHP 8.1 first on PATH for this job only.
+      - name: Pin PHP 8.1 for this job
+        shell: bash
+        run: |
+          set -euo pipefail
+          ver=8.1
+          if [ ! -x "/usr/bin/php$ver" ]; then
+            echo "::error::/usr/bin/php$ver is missing on this runner host"
+            exit 1
+          fi
+          pin_dir="$RUNNER_TEMP/php-bin"
+          mkdir -p "$pin_dir"
+          for tool in php phpize php-config phar; do
+            if [ -x "/usr/bin/$tool$ver" ]; then
+              ln -sf "/usr/bin/$tool$ver" "$pin_dir/$tool"
+            fi
+          done
+          echo "$pin_dir" >> "$GITHUB_PATH"
+          export PATH="$pin_dir:$PATH"
+          php --version
       - name: Determine test requirements and plugin info
         id: parse-version
         run: |
