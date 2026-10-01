@@ -169,8 +169,9 @@ jobs:
             version.php
           since_last_remote_commit: "true"
       # The self-hosted runners share one host. setup-php switches its global
-      # /usr/bin/php alternative (and conf.d) under every other job running there,
-      # so put PHP 8.1 first on PATH for this job only.
+      # /usr/bin/php alternative and toggles Xdebug/PCOV in its conf.d under every
+      # other job running there. Put PHP 8.1 first on PATH for this job only, and
+      # scan a job-local snapshot of its conf.d without any coverage driver.
       - name: Pin PHP 8.1 for this job
         shell: bash
         run: |
@@ -189,6 +190,23 @@ jobs:
           done
           echo "$pin_dir" >> "$GITHUB_PATH"
           export PATH="$pin_dir:$PATH"
+          ini_dir="$RUNNER_TEMP/php-ini"
+          rm -rf "$ini_dir"
+          mkdir -p "$ini_dir"
+          host_conf_d="$(php -n -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')"
+          for ini in "$host_conf_d"/*.ini; do
+            [ -e "$ini" ] || continue
+            sed -E '/^[[:space:]]*(zend_)?extension[[:space:]]*=.*(xdebug|pcov)/d' "$ini" > "$ini_dir/$(basename "$ini")"
+          done
+          export PHP_INI_SCAN_DIR="$ini_dir"
+          echo "PHP_INI_SCAN_DIR=$PHP_INI_SCAN_DIR" >> "$GITHUB_ENV"
+          startup="$(php -r '' 2>&1)"
+          if [ -n "$startup" ]; then
+            echo "::error::PHP $ver startup is not clean: $startup"
+            exit 1
+          fi
+          # shellcheck disable=SC2016 # $driver is PHP, not shell
+          php -r 'foreach (array("xdebug", "pcov") as $driver) { if (extension_loaded($driver)) { fwrite(STDERR, "::error::$driver is loaded in a job without coverage\n"); exit(1); } }'
           php --version
       - name: Determine test requirements and plugin info
         id: parse-version
