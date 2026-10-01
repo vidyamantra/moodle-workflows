@@ -171,7 +171,7 @@ jobs:
       # The self-hosted runners share one host. setup-php switches its global
       # /usr/bin/php alternative and toggles Xdebug/PCOV in its conf.d under every
       # other job running there. Put PHP 8.1 first on PATH for this job only, and
-      # scan a job-local snapshot of its conf.d without any coverage driver.
+      # read job-local copies of its php.ini and conf.d without any coverage driver.
       - name: Pin PHP 8.1 for this job
         shell: bash
         run: |
@@ -190,16 +190,27 @@ jobs:
           done
           echo "$pin_dir" >> "$GITHUB_PATH"
           export PATH="$pin_dir:$PATH"
-          ini_dir="$RUNNER_TEMP/php-ini"
-          rm -rf "$ini_dir"
-          mkdir -p "$ini_dir"
+          host_ini="$(env -u PHPRC -u PHP_INI_SCAN_DIR php -r 'echo php_ini_loaded_file() ?: "";')"
+          if [ -z "$host_ini" ]; then
+            echo "::error::PHP $ver on this runner host loads no php.ini"
+            exit 1
+          fi
           host_conf_d="$(php -n -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')"
+          rc_dir="$RUNNER_TEMP/php-rc"
+          ini_dir="$RUNNER_TEMP/php-ini"
+          rm -rf "$rc_dir" "$ini_dir"
+          mkdir -p "$rc_dir" "$ini_dir"
+          no_driver='/^[[:space:]]*(zend_)?extension[[:space:]]*=.*(xdebug|pcov)/d'
+          sed -E "$no_driver" "$host_ini" > "$rc_dir/php.ini"
           for ini in "$host_conf_d"/*.ini; do
             [ -e "$ini" ] || continue
-            sed -E '/^[[:space:]]*(zend_)?extension[[:space:]]*=.*(xdebug|pcov)/d' "$ini" > "$ini_dir/$(basename "$ini")"
+            sed -E "$no_driver" "$ini" > "$ini_dir/$(basename "$ini")"
           done
-          export PHP_INI_SCAN_DIR="$ini_dir"
-          echo "PHP_INI_SCAN_DIR=$PHP_INI_SCAN_DIR" >> "$GITHUB_ENV"
+          export PHPRC="$rc_dir" PHP_INI_SCAN_DIR="$ini_dir"
+          {
+            echo "PHPRC=$PHPRC"
+            echo "PHP_INI_SCAN_DIR=$PHP_INI_SCAN_DIR"
+          } >> "$GITHUB_ENV"
           startup="$(php -r '' 2>&1)"
           if [ -n "$startup" ]; then
             echo "::error::PHP $ver startup is not clean: $startup"
