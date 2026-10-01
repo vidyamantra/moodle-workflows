@@ -202,9 +202,17 @@ jobs:
           mkdir -p "$rc_dir" "$ini_dir"
           no_driver='/^[[:space:]]*(zend_)?extension[[:space:]]*=.*(xdebug|pcov)/d'
           sed -E "$no_driver" "$host_ini" > "$rc_dir/php.ini"
+          # Another job may phpdismod an entry mid-copy: skip what vanished, fail on
+          # anything that still exists but cannot be read.
           for ini in "$host_conf_d"/*.ini; do
-            [ -e "$ini" ] || continue
-            sed -E "$no_driver" "$ini" > "$ini_dir/$(basename "$ini")"
+            copy="$ini_dir/$(basename "$ini")"
+            if ! sed -E "$no_driver" "$ini" > "$copy" 2>/dev/null; then
+              rm -f "$copy"
+              if [ -e "$ini" ]; then
+                echo "::error::cannot read $ini"
+                exit 1
+              fi
+            fi
           done
           export PHPRC="$rc_dir" PHP_INI_SCAN_DIR="$ini_dir"
           {
