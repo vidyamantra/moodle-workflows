@@ -200,6 +200,7 @@ Moodle or starting containers:
 
 ```sh
 php tests/matrix.php
+python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
 The matrix tests run the real parser with synthetic plugin metadata and network
@@ -207,6 +208,11 @@ access disabled. GitHub CI additionally starts PostgreSQL 17 and MariaDB 11.4
 and checks their connections on PHP 8.3 and 8.4. These are workflow checks;
 plugin compatibility still requires each owning plugin's Moodle install and
 test suite against `MOODLE_503_STABLE`. Moving `main` is separate coverage.
+
+The privacy smoke helper targets the registry and provider test files directly
+across legacy and public layouts. Each command must produce a fresh JUnit report
+with at least one non-skipped testcase; empty selections fail independently.
+The helper retains the core tests' normal provider scope and failure flags.
 
 ## Moodiy self-hosted runner customisations
 

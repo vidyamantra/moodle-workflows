@@ -47,6 +47,7 @@ jobs:
           extensions: pdo_mysql, pdo_pgsql
           coverage: none
       - run: php tests/matrix.php
+      - run: python3 -m unittest discover -s tests -p 'test_*.py'
       - name: Check database connections
         run: |
           php -r '

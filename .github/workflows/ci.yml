@@ -1016,9 +1016,7 @@ jobs:
       - name: Run phpunit
         run: |
           moodle-plugin-ci phpunit
-          cd moodle
-          vendor/bin/phpunit --fail-on-risky --disallow-test-output --filter tool_dataprivacy_metadata_registry_testcase
-          vendor/bin/phpunit --fail-on-risky --disallow-test-output --testsuite core_privacy_testsuite --filter provider_testcase
+          bash ci/.github/actions/privacy-smoke/run.sh "$GITHUB_WORKSPACE/moodle"
         shell: bash
       - name: Chown workspace back to host runner UID
         # We run inside a container as root. GitHub Actions mounts the host
