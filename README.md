@@ -195,6 +195,19 @@ with:
   internal_workflow_branch: 'my-custom-branch'
 ```
 
+The shared matrix/parser contract can also be checked locally without contacting
+Moodle or starting containers:
+
+```sh
+php tests/matrix.php
+```
+
+The matrix tests run the real parser with synthetic plugin metadata and network
+access disabled. GitHub CI additionally starts PostgreSQL 17 and MariaDB 11.4
+and checks their connections on PHP 8.3 and 8.4. These are workflow checks;
+plugin compatibility still requires each owning plugin's Moodle install and
+test suite against `MOODLE_503_STABLE`. Moving `main` is separate coverage.
+
 ## Moodiy self-hosted runner customisations
 
 This fork extends the upstream Catalyst reusable workflows with a self-hosted

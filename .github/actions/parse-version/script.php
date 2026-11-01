@@ -60,40 +60,45 @@ $matrix = Yaml::parse($matrixYaml);
 
 // Version breakpoints are sourced from:
 // https://download.moodle.org/api/1.3/updates.php?format=json&version=0.0&branch=$lowestSupportedBranch
-$updatesUrl = 'https://download.moodle.org/api/1.3/updates.php?format=json&version=0.0&branch=3.8';
-$ch = curl_init($updatesUrl);
-curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_HEADER         => true,
-    CURLOPT_FOLLOWLOCATION => true,
-    CURLOPT_TIMEOUT        => 30,
-    CURLOPT_USERAGENT      => "MoodleBot/5.1 (+https://catalyst-au.net)",
-]);
-$rawResponse   = curl_exec($ch);
-$httpCode      = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$headerSize    = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-$curlError     = curl_error($ch);
-curl_close($ch);
+// Only the requires-only fallback needs release breakpoints. Explicit branch
+// filters and supported ranges are resolved from the checked-in matrix.
+$updates = [];
+if (empty($_SERVER['filter']) && empty($plugin->supported)) {
+    $updatesUrl = 'https://download.moodle.org/api/1.3/updates.php?format=json&version=0.0&branch=3.8';
+    $ch = curl_init($updatesUrl);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HEADER         => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_USERAGENT      => "MoodleBot/5.1 (+https://catalyst-au.net)",
+    ]);
+    $rawResponse   = curl_exec($ch);
+    $httpCode      = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $headerSize    = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+    $curlError     = curl_error($ch);
+    curl_close($ch);
 
-$responseHeaders = substr($rawResponse, 0, $headerSize);
-$updatesResponse = substr($rawResponse, $headerSize);
+    $responseHeaders = substr($rawResponse, 0, $headerSize);
+    $updatesResponse = substr($rawResponse, $headerSize);
 
-if ($rawResponse === false || $curlError) {
-    fwrite(STDERR, "Error: Failed to fetch Moodle updates from $updatesUrl: $curlError\n");
-    exit(1);
+    if ($rawResponse === false || $curlError) {
+        fwrite(STDERR, "Error: Failed to fetch Moodle updates from $updatesUrl: $curlError\n");
+        exit(1);
+    }
+    if ($httpCode !== 200) {
+        fwrite(STDERR, "Error: Unexpected HTTP $httpCode fetching Moodle updates from $updatesUrl\n");
+        fwrite(STDERR, "Response headers:\n$responseHeaders\n");
+        exit(1);
+    }
+    $updates = json_decode($updatesResponse, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        fwrite(STDERR, "Error: Failed to parse Moodle updates JSON: " . json_last_error_msg() . "\n");
+        fwrite(STDERR, "Response headers:\n$responseHeaders\n");
+        exit(1);
+    }
+    $updates = $updates['updates']['core'] ?? [];
 }
-if ($httpCode !== 200) {
-    fwrite(STDERR, "Error: Unexpected HTTP $httpCode fetching Moodle updates from $updatesUrl\n");
-    fwrite(STDERR, "Response headers:\n$responseHeaders\n");
-    exit(1);
-}
-$updates = json_decode($updatesResponse, true);
-if (json_last_error() !== JSON_ERROR_NONE) {
-    fwrite(STDERR, "Error: Failed to parse Moodle updates JSON: " . json_last_error_msg() . "\n");
-    fwrite(STDERR, "Response headers:\n$responseHeaders\n");
-    exit(1);
-}
-$updates = $updates['updates']['core'] ?? [];
 
 
 // Helper to normalize container name
