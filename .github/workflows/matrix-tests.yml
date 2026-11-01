@@ -1,0 +1,56 @@
+name: Matrix tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  matrix-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.3', '8.4']
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MYSQL_USER: root
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
+          MYSQL_CHARACTER_SET_SERVER: utf8mb4
+          MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mariadb-admin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_mysql, pdo_pgsql
+          coverage: none
+      - run: php tests/matrix.php
+      - name: Check database connections
+        run: |
+          php -r '
+            new PDO("pgsql:host=127.0.0.1;dbname=postgres", "postgres", "");
+            new PDO("mysql:host=127.0.0.1", "root", "");
+            echo "PostgreSQL 17 and MariaDB 11.4 connections passed\n";
+          '

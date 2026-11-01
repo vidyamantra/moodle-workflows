@@ -6,9 +6,9 @@ on:
     branches:
       - main
     paths:
-      - '.github/actions/matrix/matrix_includes.yml'
+      # CI matrix rows use the existing local moodle-ci-base image, not this
+      # legacy per-branch GHCR builder (whose docker/Dockerfile is absent here).
       - 'docker/**'
-      - '.github/workflows/build-dockerfiles.yml'
 
 jobs:
   build-matrix:
