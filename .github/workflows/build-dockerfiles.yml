@@ -12,7 +12,7 @@ on:
 
 jobs:
   build-matrix:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, hetzner]
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -25,7 +25,10 @@ jobs:
           python-version: '3.x'
 
       - name: Install PyYAML
-        run: pip install pyyaml
+        run: |
+          python -m venv "$RUNNER_TEMP/matrix-python"
+          "$RUNNER_TEMP/matrix-python/bin/pip" install pyyaml
+          echo "$RUNNER_TEMP/matrix-python/bin" >> "$GITHUB_PATH"
 
       - name: Extract unique moodle-branch/php matrix
         id: set-matrix
@@ -62,7 +65,10 @@ jobs:
   build:
     name: ${{ matrix.container }}
     needs: build-matrix
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, hetzner]
+    env:
+      # Do not share login/logout state with another job on the Docker host.
+      DOCKER_CONFIG: ${{ runner.temp }}/moodle-docker-${{ github.run_id }}-${{ github.run_attempt }}
     strategy:
       matrix:
         include: ${{fromJson(needs.build-matrix.outputs.matrix)}}
@@ -77,7 +83,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build Docker image
         run: |
-          docker build \
+          flock -n -E 75 /tmp/fleet-heavy.lock docker build \
             --build-arg MOODLE_BRANCH=${{ matrix.moodle-branch }} \
             --build-arg PHP_VERSION=${{ matrix.php }} \
             --build-arg NODE_VERSION=${{ matrix.node }} \

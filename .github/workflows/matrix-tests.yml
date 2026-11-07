@@ -10,8 +10,15 @@ permissions:
 
 jobs:
   matrix-tests:
-    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, hetzner]
+    # Reuse the existing Moodle image; PHP selection stays inside this job.
+    container:
+      image: localhost:5000/moodle-ci-base:latest
+      # A missing host lock refuses container creation instead of creating a host directory.
+      options: --mount type=bind,source=/tmp/fleet-heavy.lock,target=/tmp/fleet-heavy.lock
     strategy:
+      max-parallel: 1
       matrix:
         php: ['8.3', '8.4']
     services:
@@ -20,7 +27,6 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_HOST_AUTH_METHOD: trust
-        ports: ['5432:5432']
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -29,11 +35,9 @@ jobs:
       mariadb:
         image: mariadb:11.4
         env:
-          MYSQL_USER: root
           MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
           MYSQL_CHARACTER_SET_SERVER: utf8mb4
           MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
-        ports: ['3306:3306']
         options: >-
           --health-cmd="mariadb-admin ping"
           --health-interval 10s
@@ -41,17 +45,22 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: pdo_mysql, pdo_pgsql
-          coverage: none
-      - run: php tests/matrix.php
-      - run: python3 -m unittest discover -s tests -p 'test_*.py'
-      - name: Check database connections
+      - name: Run the existing parser, Python and database checks
+        shell: bash
+        env:
+          PHP_VERSION: ${{ matrix.php }}
         run: |
-          php -r '
-            new PDO("pgsql:host=127.0.0.1;dbname=postgres", "postgres", "");
-            new PDO("mysql:host=127.0.0.1", "root", "");
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/matrix-checks.sh" <<'CHECKS'
+          set -euo pipefail
+          php="/usr/bin/php${PHP_VERSION}"
+          test -x "$php"
+          "$php" tests/matrix.php
+          python3 -m unittest discover -s tests -p 'test_*.py'
+          "$php" -r '
+            new PDO("pgsql:host=postgres;dbname=postgres", "postgres", "");
+            new PDO("mysql:host=mariadb", "root", "");
             echo "PostgreSQL 17 and MariaDB 11.4 connections passed\n";
           '
+          CHECKS
+          flock -n -E 75 /tmp/fleet-heavy.lock bash "$RUNNER_TEMP/matrix-checks.sh"
